@@ -4,6 +4,48 @@
 
 ---
 
+<!-- cognis:layman:start -->
+## What is this?
+
+`launcher` is a small, self-contained command-line tool from the Cognis suite. It does one job well, runs locally with no account or cloud service required, and is built to be easy to install and read. See the usage below for what it can do.
+<!-- cognis:layman:end -->
+
+<!-- cognis:install:start -->
+## Install
+
+`launcher` is source-available (not published to PyPI) — every method below installs
+straight from GitHub. Pick whichever you prefer; the one-line scripts auto-detect
+the best tool available on your machine.
+
+**One-liner (Linux / macOS):**
+```sh
+curl -fsSL https://raw.githubusercontent.com/cognis-digital/launcher/HEAD/install.sh | sh
+```
+
+**One-liner (Windows PowerShell):**
+```powershell
+irm https://raw.githubusercontent.com/cognis-digital/launcher/HEAD/install.ps1 | iex
+```
+
+**Or install manually — any one of:**
+```sh
+pipx install "git+https://github.com/cognis-digital/launcher.git"     # isolated (recommended)
+uv tool install "git+https://github.com/cognis-digital/launcher.git"  # uv
+pip install "git+https://github.com/cognis-digital/launcher.git"      # pip
+```
+
+**From source:**
+```sh
+git clone https://github.com/cognis-digital/launcher.git
+cd launcher && pip install .
+```
+
+Then run:
+```sh
+python -m launcher --help
+```
+<!-- cognis:install:end -->
+
 ## Quick start (guided)
 
 **New here? Run one command and type a number.**
@@ -289,3 +331,29 @@ echo 'GH_ORG="your-username"' >> ~/.cognis-suite/state.env
 The launcher is one self-contained bash script (~700 lines). The catalog of 52 tools lives inline as a heredoc; each entry is `domain/slug:description`. The provisioning logic is a single function (`provision_one`) that handles git init → README render → repo create → topic set → push.
 
 The per-project menu (`project_menu`) re-uses `gh` subcommands wherever possible — issues, releases, browse — so you stay in one shell context.
+
+<a name="verification"></a>
+## Verification
+
+
+
+Every push is verified end-to-end. Latest audit (2026-06-12):
+
+```text
+tests        : 0 passed, 0 failed, 0 errored
+compile      : all modules parse
+cli          : n/a
+package      : n/a
+```
+
+<details><summary>CLI surface (<code>--help</code>)</summary>
+
+```text
+(see --help)
+```
+</details>
+
+Full machine-readable results: [`AUDIT.md`](AUDIT.md) · regenerate with `python -m launcher --help` + `pytest -q`.
+
+<div align="right"><a href="#top">↑ back to top</a></div>
+
