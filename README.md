@@ -328,3 +328,9 @@ echo 'GH_ORG="your-username"' >> ~/.cognis-suite/state.env
 The launcher is one self-contained bash script (~700 lines). The catalog of 52 tools lives inline as a heredoc; each entry is `domain/slug:description`. The provisioning logic is a single function (`provision_one`) that handles git init → README render → repo create → topic set → push.
 
 The per-project menu (`project_menu`) re-uses `gh` subcommands wherever possible — issues, releases, browse — so you stay in one shell context.
+
+## Interoperability
+
+`{}` composes with the 300+ tool Cognis suite — JSON in/out and a shared
+OpenAI-compatible `/v1` backbone. See **[INTEROP.md](INTEROP.md)** for the
+suite map, composition patterns, and reference stacks.
