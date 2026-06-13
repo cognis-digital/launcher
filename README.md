@@ -4,6 +4,45 @@
 
 ---
 
+## Usage — step by step
+
+The Suite Launcher (`cognis-launcher.sh`) provisions, pushes, and releases the Cognis Neural Suite tool repos. It runs guided/interactive, but every step has a non-interactive subcommand.
+
+1. **Install / first run** — bootstrap the environment with the guided wizard (stdlib + `gh`):
+
+   ```bash
+   ./setup.sh                       # macOS / Linux / Git-Bash / WSL
+   # Windows PowerShell:  .\setup.ps1
+   ```
+
+2. **Verify the toolchain and authenticate GitHub:**
+
+   ```bash
+   bash launcher/cognis-launcher.sh setup
+   bash launcher/cognis-launcher.sh auth
+   ```
+
+3. **Provision the repos** — create every repo and push its files, or jump into one tool's per-project menu:
+
+   ```bash
+   bash launcher/cognis-launcher.sh create-all
+   bash launcher/cognis-launcher.sh hop promptmirror
+   ```
+
+4. **Read the state / verify** — snapshot status and run the cross-tool smoke test:
+
+   ```bash
+   bash launcher/cognis-launcher.sh status
+   bash launcher/cognis-launcher.sh smoke
+   ```
+
+5. **Use it in automation** — cut a release across all repos non-interactively (great for CI):
+
+   ```bash
+   bash launcher/cognis-launcher.sh list
+   bash launcher/cognis-launcher.sh release-all v0.1.0
+   ```
+
 ## Quick start (guided)
 
 **New here? Run one command and type a number.**
