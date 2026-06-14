@@ -267,7 +267,10 @@ def explain(level: int, by_level: dict) -> None:
 
 def load_state() -> dict:
     try:
-        return json.loads(STATE_FILE.read_text(encoding="utf-8"))
+        data = json.loads(STATE_FILE.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            return {}
+        return data
     except Exception:
         return {}
 
@@ -407,7 +410,13 @@ def discover_manifest(explicit: str | None) -> Path | None:
     """Find a MANIFEST.json: explicit arg, then a few sensible locations."""
     if explicit:
         p = Path(explicit).expanduser()
-        return p if p.is_file() else None
+        if not p.is_file():
+            print(
+                S.red(f"  ERROR: manifest not found: {p}"),
+                file=sys.stderr,
+            )
+            return None
+        return p
 
     here = Path(__file__).resolve().parent
     candidates = [
@@ -435,8 +444,21 @@ def load_manifest(path: Path | None) -> dict:
         return empty
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
+    except UnicodeDecodeError:
+        print(S.yellow(f"  (manifest is not valid UTF-8: {path})"), file=sys.stderr)
+        return empty
+    except json.JSONDecodeError as exc:
+        print(S.yellow(f"  (manifest is not valid JSON: {path}: {exc})"), file=sys.stderr)
+        return empty
     except Exception as exc:
-        print(S.yellow(f"  (could not read manifest {path}: {exc})"))
+        print(S.yellow(f"  (could not read manifest {path}: {exc})"), file=sys.stderr)
+        return empty
+
+    if not isinstance(raw, (dict, list)):
+        print(
+            S.yellow(f"  (manifest has unexpected top-level type {type(raw).__name__}: {path})"),
+            file=sys.stderr,
+        )
         return empty
 
     raw_tools = raw.get("tools", raw) if isinstance(raw, dict) else raw
@@ -515,7 +537,10 @@ def run_command(command: str, dry_run: bool, level: int) -> bool:
 
     print(S.dim("  Running…\n"))
     try:
-        proc = subprocess.run(command, shell=True)
+        proc = subprocess.run(command, shell=True, timeout=300)
+    except subprocess.TimeoutExpired:
+        print(S.red(f"  {S.cross} Command timed out after 300 s."))
+        return False
     except Exception as exc:
         print(S.red(f"  {S.cross} Failed to launch command: {exc}"))
         return False
@@ -821,10 +846,12 @@ def action_health_check(manifest, env, level) -> None:
 
 def _probe_endpoint(base_url: str) -> bool:
     """Best-effort TCP/HTTP probe of an OpenAI-compatible base URL."""
+    if not base_url or "://" not in base_url:
+        return False
     import urllib.request
     url = base_url.rstrip("/") + "/models"
     try:
-        with urllib.request.urlopen(url, timeout=3) as r:
+        with urllib.request.urlopen(url, timeout=5) as r:
             return r.status < 500
     except Exception:
         # A connection refused vs. 404 both tell us little; treat any reach as ok.
@@ -832,7 +859,11 @@ def _probe_endpoint(base_url: str) -> bool:
             from urllib.parse import urlparse
             import socket
             u = urlparse(base_url)
-            with socket.create_connection((u.hostname, u.port or 80), timeout=3):
+            host = u.hostname
+            port = u.port or (443 if u.scheme == "https" else 80)
+            if not host:
+                return False
+            with socket.create_connection((host, port), timeout=5):
                 return True
         except Exception:
             return False
@@ -1015,10 +1046,16 @@ def run(manifest_path: str | None = None, dry_run: bool = False, use_curses: boo
     }
 
     env = detect_environment()
-    if not cfg["method"]:
+    _valid_methods = {"pip", "pipx", "git", "docker"}
+    if cfg["method"] not in _valid_methods:
         cfg["method"] = recommend_method(env)
 
     # STEP 0: familiarity (asked once, persisted).
+    # Validate: must be an int in [1, 5]; anything else (corrupt state, wrong type)
+    # triggers the prompt again so we never pass a bad value downstream.
+    _fam = cfg["familiarity"]
+    if not (isinstance(_fam, int) and 1 <= _fam <= 5):
+        cfg["familiarity"] = None
     if cfg["familiarity"] is None:
         cfg["familiarity"] = prompt_familiarity()
         state["familiarity"] = cfg["familiarity"]
@@ -1083,14 +1120,33 @@ def main(argv: list[str] | None = None) -> int:
         prog="cognis_setup.py",
         description="The guided Cognis setup wizard (stdlib only).",
     )
-    parser.add_argument("--manifest", help="Path to MANIFEST.json (auto-discovered if omitted).")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Show every command but never execute it.")
-    parser.add_argument("--no-curses", action="store_true",
-                        help="Force the ANSI numbered menu even where curses is available.")
+    parser.add_argument(
+        "--manifest",
+        help="Path to MANIFEST.json (auto-discovered if omitted).",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show every command but never execute it.",
+    )
+    parser.add_argument(
+        "--no-curses",
+        action="store_true",
+        help="Force the ANSI numbered menu even where curses is available.",
+    )
     args = parser.parse_args(argv)
-    return run(manifest_path=args.manifest, dry_run=args.dry_run,
-               use_curses=False if args.no_curses else None)
+    try:
+        return run(
+            manifest_path=args.manifest,
+            dry_run=args.dry_run,
+            use_curses=False if args.no_curses else None,
+        )
+    except (EOFError, KeyboardInterrupt):
+        print("\nAborted.", file=sys.stderr)
+        return 130
+    except Exception as exc:  # unexpected error — print cleanly, no traceback
+        print(f"cognis_setup: unexpected error: {exc}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
