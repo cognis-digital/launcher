@@ -4,6 +4,35 @@
 
 ---
 
+
+<!-- cognis:example:start -->
+## 🔎 Example output
+
+**Sample result format** _(illustrative values — run on your own data for real findings):_
+
+```
+{
+  "launches": [
+    {
+      "id": "1234567890",
+      "name": "My Awesome App",
+      "uri": "https://example.com/app",
+      "icon": "path/to/icon.png",
+      "category": "Productivity"
+    },
+    {
+      "id": "2345678901",
+      "name": "Another Cool Tool",
+      "uri": "https://example.net/tool",
+      "icon": "path/to/another-icon.png",
+      "category": "Utilities"
+    }
+  ]
+}
+```
+
+<!-- cognis:example:end -->
+
 ## Usage — step by step
 
 The Suite Launcher (`cognis-launcher.sh`) provisions, pushes, and releases the Cognis Neural Suite tool repos. It runs guided/interactive, but every step has a non-interactive subcommand.
